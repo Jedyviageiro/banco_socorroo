@@ -7,6 +7,9 @@ const sequelize = require('./config/database');
 const pacienteController = require('./controllers/pacienteController');
 const triagemController = require('./controllers/triagemController');
 const avaliacaoController = require('./controllers/avaliacaoController');
+const authController = require('./controllers/authController');
+const requireAuth = require('./middleware/authMiddleware');
+require('./models/Usuario');
 
 const app = express();
 
@@ -14,21 +17,19 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // ROTAS
+app.post('/auth/login', authController.login);
+app.get('/auth/me', requireAuth, authController.me);
 
-// Paciente
-app.post('/pacientes', pacienteController.criarPaciente);
-app.get('/pacientes', pacienteController.listarPacientes);
+app.post('/pacientes', requireAuth, pacienteController.criarPaciente);
+app.get('/pacientes', requireAuth, pacienteController.listarPacientes);
 
-// Triagem
-app.post('/triagens', triagemController.criarTriagem);
+app.post('/triagens', requireAuth, triagemController.criarTriagem);
+app.post('/avaliacoes', requireAuth, avaliacaoController.criarAvaliacao);
 
-// Avaliação
-app.post('/avaliacoes', avaliacaoController.criarAvaliacao);
-
-// conectar banco
 sequelize.sync()
-  .then(() => {
+  .then(async () => {
+    await authController.seedDefaultUser();
     console.log('Banco conectado');
     app.listen(3000, () => console.log('Servidor rodando na porta 3000'));
   })
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
