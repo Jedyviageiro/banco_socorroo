@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../components/useToast';
+import { DEPARTMENTS, getClinicalRouting } from '../lib/clinicalRouting';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
@@ -23,17 +24,17 @@ const NAV_ITEMS = [
   { label: 'Avaliação', icon: Icon.Clipboard, path: '/avaliacoes'},
 ];
 
-const TREATMENT_OPTIONS = [
+const CARE_OPTIONS = [
   {
     key: 'internamento',
     label: 'Internamento',
-    desc: 'Acompanhamento contínuo e admissão hospitalar.',
+    desc: 'Admissão hospitalar e observação contínua.',
     Icon: Icon.Bed,
   },
   {
     key: 'endovenoso',
     label: 'Endovenoso',
-    desc: 'Administração intravenosa e observação clínica.',
+    desc: 'Terapêutica intravenosa e vigilância clínica.',
     Icon: Icon.Droplet,
   },
 ];
@@ -146,6 +147,8 @@ const css = `
   .av-treatment-name { font-size: 13px; font-weight: 600; color: #f5f7fb; }
   .av-treatment-desc { font-size: 11.5px; color: rgba(255,255,255,.62); font-weight: 300; line-height: 1.5; }
   .av-treatment-option.selected .av-treatment-name { color: #dbe7ff; }
+  .av-routing-note { padding: 12px 14px; border-radius: var(--radius-sm); background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.16); color: #dbe7ff; font-size: 12.5px; line-height: 1.55; }
+  .av-routing-note.warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.18); color: #fef3c7; }
 
   /* ── alerts / submit ── */
   .av-submit { padding: 11px 24px; background: #3c3489; color: #fff; border: none; border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background .15s, transform .1s, box-shadow .15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -178,7 +181,9 @@ function Avaliacao({ usuario, onLogout }) {
   const location = useLocation();
   const [pacientes, setPacientes]           = useState([]);
   const [isLoadingPacientes, setIsLoading]  = useState(true);
-  const [form, setForm]                     = useState({ PacienteId: '', tipo: 'internamento', descricao: '' });
+  const [form, setForm]                     = useState({ PacienteId: '', tipo: 'internamento', departamento: '', descricao: '' });
+  const [triagemRecente, setTriagemRecente] = useState(null);
+  const [isLoadingTriagem, setIsLoadingTriagem] = useState(false);
   const [uiState, setUiState]               = useState('idle');
   useEffect(() => {
     let isMounted = true;
@@ -197,22 +202,86 @@ function Avaliacao({ usuario, onLogout }) {
     return () => { isMounted = false; };
   }, [toast]);
 
+  useEffect(() => {
+    if (!form.PacienteId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    api.get(`/triagens/paciente/${form.PacienteId}/ultima`)
+      .then(({ data }) => {
+        if (isMounted) {
+          setTriagemRecente(data);
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setTriagemRecente(null);
+        if (err.response?.status !== 404) {
+          toast.error('Não foi possível carregar a triagem do paciente.', 'Carga falhou');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingTriagem(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [form.PacienteId, toast]);
+
   const pacienteAtual = useMemo(
     () => pacientes.find((p) => String(p.id) === String(form.PacienteId)),
     [pacientes, form.PacienteId]
   );
+  const encaminhamentoBase = useMemo(() => (
+    triagemRecente
+      ? {
+          department: DEPARTMENTS.find((item) => item.key === triagemRecente.departamentoSugerido) || DEPARTMENTS[3],
+          diagnosis: triagemRecente.diagnosticoSugerido,
+          priority: triagemRecente.prioridadeAtendimento,
+          reason: triagemRecente.motivoEncaminhamento,
+        }
+      : getClinicalRouting({ descricao: form.descricao })
+  ), [form.descricao, triagemRecente]);
 
   const handleLogout = () => { onLogout(); navigate('/', { replace: true }); };
-  const handleChange = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  const handleChange = (key) => (e) => {
+    const { value } = e.target;
+
+    if (key === 'PacienteId') {
+      setTriagemRecente(null);
+      setIsLoadingTriagem(Boolean(value));
+    }
+
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
   const setTipo      = (tipo) => setForm((prev) => ({ ...prev, tipo }));
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setUiState('loading');
     try {
-      await api.post('/avaliacoes', { ...form, PacienteId: Number(form.PacienteId) });
+      const payload = {
+        PacienteId: Number(form.PacienteId),
+        tipo: form.tipo,
+        departamento: form.departamento || encaminhamentoBase.department.key,
+        descricao: [
+          `Departamento: ${DEPARTMENTS.find((item) => item.key === (form.departamento || encaminhamentoBase.department.key))?.label || 'Não definido'}`,
+          `Conduta: ${CARE_OPTIONS.find((item) => item.key === form.tipo)?.label || form.tipo}`,
+          '',
+          form.descricao,
+        ].join('\n'),
+      };
+
+      await api.post('/avaliacoes', payload);
       setUiState('success');
-      setForm({ PacienteId: '', tipo: 'internamento', descricao: '' });
-      toast.success('Avaliação registada com sucesso.', 'Avaliação guardada');
+      setForm({ PacienteId: '', tipo: 'internamento', departamento: '', descricao: '' });
+      setTriagemRecente(null);
+      setIsLoadingTriagem(false);
+      toast.success('Avaliação registada com encaminhamento definido.', 'Avaliação guardada');
     } catch (err) {
       setUiState('error');
       const message = err.response?.data?.erro || 'Não foi possível guardar a avaliação.';
@@ -227,7 +296,9 @@ function Avaliacao({ usuario, onLogout }) {
     ? pacienteAtual.nome.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
     : null;
 
-  const selectedOption = TREATMENT_OPTIONS.find((o) => o.key === form.tipo);
+  const selectedOption = CARE_OPTIONS.find((o) => o.key === form.tipo);
+  const effectiveDepartmentKey = form.departamento || encaminhamentoBase.department.key || '';
+  const selectedDepartment = DEPARTMENTS.find((item) => item.key === effectiveDepartmentKey);
 
   return (
     <div className="av-root">
@@ -301,10 +372,38 @@ function Avaliacao({ usuario, onLogout }) {
                     </select>
                   </div>
 
-                  <div className="av-divider">Tipo de tratamento</div>
+                  <div className="av-divider">Departamento de encaminhamento</div>
+
+                  <div className="av-field">
+                    <label className="av-field-label">Departamento sugerido / final <span className="av-field-req" /></label>
+                    <select value={effectiveDepartmentKey} onChange={handleChange('departamento')} required>
+                      <option value="">Selecionar departamento</option>
+                      {DEPARTMENTS.map((department) => (
+                        <option key={department.key} value={department.key}>{department.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="av-routing-note">
+                    {triagemRecente
+                      ? <>Diagnóstico da triagem: <strong>{encaminhamentoBase.diagnosis}</strong>. Encaminhamento sugerido para <strong>{encaminhamentoBase.department.label}</strong>. {encaminhamentoBase.reason}</>
+                      : <>Sugestão clínica actual: <strong>{encaminhamentoBase.department.label}</strong>. {encaminhamentoBase.reason}</>}
+                  </div>
+
+                  {!isLoadingTriagem && !triagemRecente && form.PacienteId && (
+                    <div className="av-routing-note warn">
+                      Este paciente ainda não tem triagem registada. A avaliação não poderá ser guardada até a triagem ser concluída.
+                    </div>
+                  )}
+
+                  {isLoadingTriagem && (
+                    <div className="av-routing-note">A carregar dados da triagem do paciente...</div>
+                  )}
+
+                  <div className="av-divider">Conduta clínica</div>
 
                   <div className="av-treatment-grid">
-                    {TREATMENT_OPTIONS.map((opt) => (
+                    {CARE_OPTIONS.map((opt) => (
                       <button
                         key={opt.key}
                         type="button"
@@ -363,17 +462,18 @@ function Avaliacao({ usuario, onLogout }) {
 
               {/* treatment summary */}
               <div className="av-side-card">
-                <div className="av-side-label">Tratamento escolhido</div>
+                <div className="av-side-label">Encaminhamento final</div>
                 <div className="av-treatment-summary">
                   <div className="av-treatment-summary-type">
                     <div className="av-treatment-badge">
                       {selectedOption && <selectedOption.Icon />}
                     </div>
                     <div>
-                      <div className="av-treatment-badge-label">{selectedOption?.label}</div>
+                      <div className="av-treatment-badge-label">{selectedDepartment?.label || 'Por definir'}</div>
+                      <div className="av-treatment-badge-sub">{selectedOption?.label || 'Sem conduta definida'}</div>
                     </div>
                   </div>
-                  <p className="av-treatment-badge-sub">{selectedOption?.desc}</p>
+                  <p className="av-treatment-badge-sub">{selectedDepartment?.summary || encaminhamentoBase.department.summary}</p>
                 </div>
               </div>
             </div>

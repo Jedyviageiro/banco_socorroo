@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../components/useToast';
+import { getClinicalRouting } from '../lib/clinicalRouting';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 
@@ -124,6 +125,15 @@ const css = `
   .tr-status-dot.active::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: rgba(22,163,74,.2); animation: pulse 1.8s ease-in-out infinite; }
   .tr-status-label { font-size: 13px; font-weight: 600; color: var(--text-1); }
   .tr-status-desc { font-size: 12px; color: var(--text-2); font-weight: 300; line-height: 1.55; }
+  .tr-route-card { background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; }
+  .tr-route-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .tr-route-dept { font-size: 16px; font-weight: 600; color: var(--text-1); margin-bottom: 8px; letter-spacing: -.2px; }
+  .tr-route-summary { font-size: 12.5px; color: var(--text-2); line-height: 1.55; margin-bottom: 10px; }
+  .tr-route-diagnosis { font-size: 14px; font-weight: 600; color: var(--text-1); margin-bottom: 8px; letter-spacing: -.2px; }
+  .tr-route-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .tr-route-chip { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--accent-lt); color: var(--accent); }
+  .tr-route-chip.neutral { background: #f3f4f6; color: #4b5563; }
+  .tr-route-reason { font-size: 12px; color: var(--text-2); line-height: 1.55; }
 `;
 
 function Triagem({ usuario, onLogout }) {
@@ -132,7 +142,17 @@ function Triagem({ usuario, onLogout }) {
   const location  = useLocation();
   const [pacientes, setPacientes] = useState([]);
   const [isLoadingPacientes, setIsLoadingPacientes] = useState(true);
-  const [form, setForm]     = useState({ PacienteId: '', temperatura: '', pressao: '', sintomas: '' });
+  const [form, setForm]     = useState({
+    PacienteId: '',
+    temperatura: '',
+    pressao: '',
+    saturacaoOxigenio: '',
+    frequenciaCardiaca: '',
+    frequenciaRespiratoria: '',
+    nivelDor: '',
+    estadoGeral: 'estavel',
+    sintomas: '',
+  });
   const [uiState, setUiState] = useState('idle');
   useEffect(() => {
     let isMounted = true;
@@ -155,16 +175,35 @@ function Triagem({ usuario, onLogout }) {
     () => pacientes.find((p) => String(p.id) === String(form.PacienteId)),
     [pacientes, form.PacienteId]
   );
+  const encaminhamento = useMemo(() => getClinicalRouting(form), [form]);
 
   const handleLogout   = () => { onLogout(); navigate('/', { replace: true }); };
   const handleChange   = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
   const handleSubmit   = async (e) => {
     e.preventDefault(); setUiState('loading');
     try {
-      await api.post('/triagens', { ...form, PacienteId: Number(form.PacienteId), temperatura: Number(form.temperatura) });
+      await api.post('/triagens', {
+        ...form,
+        PacienteId: Number(form.PacienteId),
+        temperatura: Number(form.temperatura),
+        saturacaoOxigenio: Number(form.saturacaoOxigenio),
+        frequenciaCardiaca: Number(form.frequenciaCardiaca),
+        frequenciaRespiratoria: Number(form.frequenciaRespiratoria),
+        nivelDor: Number(form.nivelDor),
+      });
       setUiState('success');
-      setForm({ PacienteId: '', temperatura: '', pressao: '', sintomas: '' });
-      toast.success('Triagem registada com sucesso.', 'Triagem guardada');
+      setForm({
+        PacienteId: '',
+        temperatura: '',
+        pressao: '',
+        saturacaoOxigenio: '',
+        frequenciaCardiaca: '',
+        frequenciaRespiratoria: '',
+        nivelDor: '',
+        estadoGeral: 'estavel',
+        sintomas: '',
+      });
+      toast.success(`Encaminhamento sugerido: ${encaminhamento.department.label}.`, 'Triagem guardada');
     } catch (err) {
       setUiState('error');
       const message = err.response?.data?.erro || 'Não foi possível guardar a triagem.';
@@ -263,6 +302,37 @@ function Triagem({ usuario, onLogout }) {
                     </div>
                   </div>
 
+                  <div className="tr-field-row">
+                    <div className="tr-field">
+                      <label className="tr-field-label">Saturação O2 (%) <span className="tr-field-req" /></label>
+                      <input type="number" min="50" max="100" value={form.saturacaoOxigenio} onChange={handleChange('saturacaoOxigenio')} placeholder="98" required />
+                    </div>
+                    <div className="tr-field">
+                      <label className="tr-field-label">Freq. cardíaca (bpm) <span className="tr-field-req" /></label>
+                      <input type="number" min="40" max="220" value={form.frequenciaCardiaca} onChange={handleChange('frequenciaCardiaca')} placeholder="96" required />
+                    </div>
+                  </div>
+
+                  <div className="tr-field-row">
+                    <div className="tr-field">
+                      <label className="tr-field-label">Freq. respiratória <span className="tr-field-req" /></label>
+                      <input type="number" min="8" max="60" value={form.frequenciaRespiratoria} onChange={handleChange('frequenciaRespiratoria')} placeholder="22" required />
+                    </div>
+                    <div className="tr-field">
+                      <label className="tr-field-label">Nível de dor (0-10) <span className="tr-field-req" /></label>
+                      <input type="number" min="0" max="10" value={form.nivelDor} onChange={handleChange('nivelDor')} placeholder="4" required />
+                    </div>
+                  </div>
+
+                  <div className="tr-field">
+                    <label className="tr-field-label">Estado geral <span className="tr-field-req" /></label>
+                    <select value={form.estadoGeral} onChange={handleChange('estadoGeral')} required>
+                      <option value="estavel">Estável</option>
+                      <option value="debilitado">Debilitado</option>
+                      <option value="critico">Crítico</option>
+                    </select>
+                  </div>
+
                   <div className="tr-divider">Observação</div>
 
                   <div className="tr-field">
@@ -279,6 +349,25 @@ function Triagem({ usuario, onLogout }) {
 
             {/* sidebar */}
             <div className="tr-sidebar">
+              <div className="tr-route-card">
+                <div className="tr-route-label">Encaminhamento sugerido</div>
+                <div className="tr-route-dept">{encaminhamento.department.label}</div>
+                <div className="tr-route-diagnosis">{encaminhamento.diagnosis}</div>
+                <div className="tr-route-summary">{encaminhamento.department.summary}</div>
+                <div className="tr-route-meta">
+                  <span className="tr-route-chip">Confiança {encaminhamento.confidence}</span>
+                  <span className="tr-route-chip">Prioridade {encaminhamento.priority}</span>
+                  {encaminhamento.matchedKeywords.length ? (
+                    encaminhamento.matchedKeywords.slice(0, 2).map((keyword) => (
+                      <span key={keyword} className="tr-route-chip neutral">{keyword}</span>
+                    ))
+                  ) : (
+                    <span className="tr-route-chip neutral">Sem palavras-chave fortes</span>
+                  )}
+                </div>
+                <p className="tr-route-reason">{encaminhamento.reason}</p>
+              </div>
+
               <div className="tr-side-card">
                 <div className="tr-side-label">Paciente selecionado</div>
                 {pacienteAtual ? (

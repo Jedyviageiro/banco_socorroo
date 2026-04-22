@@ -7,6 +7,17 @@ const Avaliacao = sequelize.define('Avaliacao', {
     type: DataTypes.ENUM('internamento', 'endovenoso'),
     allowNull: false
   },
+  departamento: {
+    type: DataTypes.ENUM(
+      'laboratorio_principal',
+      'banco_de_sangue',
+      'tarv',
+      'consulta_externa',
+      'estomatologia',
+      'dermatologia'
+    ),
+    allowNull: false
+  },
   descricao: DataTypes.TEXT
 });
 

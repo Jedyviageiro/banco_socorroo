@@ -18,6 +18,19 @@ const Usuario = sequelize.define('Usuario', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  departamento: {
+    type: DataTypes.ENUM(
+      'administracao',
+      'laboratorio_principal',
+      'banco_de_sangue',
+      'tarv',
+      'consulta_externa',
+      'estomatologia',
+      'dermatologia'
+    ),
+    allowNull: false,
+    defaultValue: 'administracao',
+  },
 });
 
 module.exports = Usuario;

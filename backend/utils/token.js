@@ -28,6 +28,7 @@ function createToken(user) {
     id: user.id,
     username: user.username,
     nome: user.nome,
+    departamento: user.departamento,
     exp: Date.now() + TOKEN_EXPIRY_MS,
   };
 

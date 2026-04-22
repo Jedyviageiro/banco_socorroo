@@ -24,6 +24,7 @@ exports.login = async (req, res) => {
         id: usuario.id,
         nome: usuario.nome,
         username: usuario.username,
+        departamento: usuario.departamento,
       },
     });
   } catch (err) {
@@ -37,26 +38,72 @@ exports.me = async (req, res) => {
       id: req.usuario.id,
       nome: req.usuario.nome,
       username: req.usuario.username,
+      departamento: req.usuario.departamento,
     },
   });
 };
 
 exports.seedDefaultUser = async () => {
-  const existingUsers = await Usuario.count();
+  const defaultUsers = [  //testing users for each department + default admin
+    {
+      nome: process.env.DEFAULT_ADMIN_NOME || 'Administrador',
+      username: process.env.DEFAULT_ADMIN_USERNAME || 'admin',
+      password: process.env.DEFAULT_ADMIN_PASSWORD || 'Admin@123',
+      departamento: 'administracao',
+    },
+    {
+      nome: 'Laboratório Principal',
+      username: 'lab.principal',
+      password: 'Lab@123',
+      departamento: 'laboratorio_principal',
+    },
+    {
+      nome: 'Banco de Sangue',
+      username: 'banco.sangue',
+      password: 'Banco@123',
+      departamento: 'banco_de_sangue',
+    },
+    {
+      nome: 'TARV',
+      username: 'tarv',
+      password: 'Tarv@123',
+      departamento: 'tarv',
+    },
+    {
+      nome: 'Consulta Externa',
+      username: 'consulta.externa',
+      password: 'Consulta@123',
+      departamento: 'consulta_externa',
+    },
+    {
+      nome: 'Estomatologia',
+      username: 'estomatologia',
+      password: 'Estoma@123',
+      departamento: 'estomatologia',
+    },
+    {
+      nome: 'Dermatologia',
+      username: 'dermatologia',
+      password: 'Dermo@123',
+      departamento: 'dermatologia',
+    },
+  ];
 
-  if (existingUsers > 0) {
-    return;
+  for (const user of defaultUsers) {
+    const [record, created] = await Usuario.findOrCreate({
+      where: { username: user.username },
+      defaults: {
+        nome: user.nome,
+        username: user.username,
+        passwordHash: hashPassword(user.password),
+        departamento: user.departamento,
+      },
+    });
+
+    if (!created && record.departamento !== user.departamento) {
+      await record.update({ departamento: user.departamento });
+    }
   }
 
-  const nome = process.env.DEFAULT_ADMIN_NOME 
-  const username = process.env.DEFAULT_ADMIN_USERNAME
-  const password = process.env.DEFAULT_ADMIN_PASSWORD
-
-  await Usuario.create({
-    nome,
-    username,
-    passwordHash: hashPassword(password),
-  });
-
-  console.log(`Utilizador padrao criado: ${username}`);
+  console.log('Utilizadores de teste verificados com sucesso.');
 };

@@ -5,7 +5,9 @@ import { ToastProvider } from './components/ToastProvider';
 import api from './services/api';
 import { clearAuthSession, getAuthSession } from './services/auth';
 import Avaliacao from './pages/Avaliacao';
+import BancoSangue from './pages/BancoSangue';
 import Dashboard from './pages/Dashboard';
+import LaboratorioPrincipal from './pages/LaboratorioPrincipal';
 import Login from './pages/Login';
 import Pacientes from './pages/Pacientes';
 import Triagem from './pages/Triagem';
@@ -75,6 +77,30 @@ function App() {
             element={(
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 <Avaliacao usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/laboratorio-principal"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'laboratorio_principal']}
+              >
+                <LaboratorioPrincipal usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/banco-de-sangue"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'banco_de_sangue']}
+              >
+                <BancoSangue usuario={session?.usuario} onLogout={handleLogout} />
               </ProtectedRoute>
             )}
           />
