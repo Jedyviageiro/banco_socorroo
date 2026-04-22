@@ -20,9 +20,14 @@ function Pacientes({ usuario, onLogout }) {
           </p>
         </div>
 
-        <button className="page-logout" onClick={handleLogout}>
-          Terminar sessao
-        </button>
+        <div className="page-header-actions">
+          <button className="page-back" onClick={() => navigate('/dashboard')}>
+            Voltar ao dashboard
+          </button>
+          <button className="page-logout" onClick={handleLogout}>
+            Terminar sessao
+          </button>
+        </div>
       </header>
 
       <PacienteForm />

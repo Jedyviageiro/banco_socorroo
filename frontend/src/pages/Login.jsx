@@ -413,7 +413,7 @@ function Login({ onLogin }) {
       const session = { token: data.token, usuario: data.usuario };
       saveAuthSession(session);
       onLogin(session);
-      navigate('/pacientes', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.erro || 'Não foi possível iniciar sessão.');
     } finally {
@@ -427,7 +427,7 @@ function Login({ onLogin }) {
 
         {/* Header */}
         <h1 className="login-title">Login</h1>
-        <p className="login-subtitle">Olá, bem-vindo de volta 👋</p>
+        <p className="login-subtitle">Olá, bem-vindo de volta</p>
 
         {/* Google button */}
         <button type="button" className="login-google-btn">

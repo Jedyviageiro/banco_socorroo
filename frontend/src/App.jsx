@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import api from './services/api';
 import { clearAuthSession, getAuthSession } from './services/auth';
+import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Pacientes from './pages/Pacientes';
 
@@ -39,7 +40,15 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isAuthenticated ? <Navigate to="/pacientes" replace /> : <Login onLogin={setSession} />}
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={setSession} />}
+        />
+        <Route
+          path="/dashboard"
+          element={(
+            <ProtectedRoute isAuthenticated={isAuthenticated}>
+              <Dashboard usuario={session?.usuario} onLogout={handleLogout} />
+            </ProtectedRoute>
+          )}
         />
         <Route
           path="/pacientes"
