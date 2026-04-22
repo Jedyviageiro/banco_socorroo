@@ -373,6 +373,18 @@ function ArrowRight() {
   );
 }
 
+function getDefaultRouteForDepartment(departamento) {
+  if (departamento === 'laboratorio_principal') {
+    return '/laboratorio-principal';
+  }
+
+  if (departamento === 'banco_de_sangue') {
+    return '/banco-de-sangue';
+  }
+
+  return '/dashboard';
+}
+
 /* ─────────────────────────────────────────────
    Main component
 ───────────────────────────────────────────── */
@@ -397,7 +409,7 @@ function Login({ onLogin }) {
       saveAuthSession(session);
       onLogin(session);
       toast.success('Sessão iniciada com sucesso.', 'Login efectuado');
-      navigate('/dashboard', { replace: true });
+      navigate(getDefaultRouteForDepartment(data.usuario?.departamento), { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.erro || 'Não foi possível iniciar sessão.', 'Falha no login');
     } finally {

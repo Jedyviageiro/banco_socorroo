@@ -11,10 +11,27 @@ import LaboratorioPrincipal from './pages/LaboratorioPrincipal';
 import Login from './pages/Login';
 import Pacientes from './pages/Pacientes';
 import Triagem from './pages/Triagem';
+import BancoSangueMonitorizacao from './pages/bancoSangue/BancoSangueMonitorizacao';
+import BancoSangueNovoPedido from './pages/bancoSangue/BancoSangueNovoPedido';
+import BancoSanguePaciente from './pages/bancoSangue/BancoSanguePaciente';
+import BancoSanguePedidos from './pages/bancoSangue/BancoSanguePedidos';
+
+function getDefaultRouteForDepartment(departamento) {
+  if (departamento === 'laboratorio_principal') {
+    return '/laboratorio-principal';
+  }
+
+  if (departamento === 'banco_de_sangue') {
+    return '/banco-de-sangue';
+  }
+
+  return '/dashboard';
+}
 
 function App() {
   const [session, setSession] = useState(() => getAuthSession());
   const isAuthenticated = Boolean(session?.token);
+  const defaultRoute = getDefaultRouteForDepartment(session?.usuario?.departamento);
 
   useEffect(() => {
     if (!session?.token) {
@@ -46,7 +63,7 @@ function App() {
         <Routes>
           <Route
             path="/"
-            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={setSession} />}
+            element={isAuthenticated ? <Navigate to={defaultRoute} replace /> : <Login onLogin={setSession} />}
           />
           <Route
             path="/dashboard"
@@ -101,6 +118,54 @@ function App() {
                 allowedDepartments={['administracao', 'banco_de_sangue']}
               >
                 <BancoSangue usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/banco-de-sangue/novo-pedido"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'banco_de_sangue']}
+              >
+                <BancoSangueNovoPedido usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/banco-de-sangue/monitorizacao"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'banco_de_sangue']}
+              >
+                <BancoSangueMonitorizacao usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/banco-de-sangue/pedidos"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'banco_de_sangue']}
+              >
+                <BancoSanguePedidos usuario={session?.usuario} onLogout={handleLogout} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/banco-de-sangue/paciente"
+            element={(
+              <ProtectedRoute
+                isAuthenticated={isAuthenticated}
+                session={session}
+                allowedDepartments={['administracao', 'banco_de_sangue']}
+              >
+                <BancoSanguePaciente usuario={session?.usuario} onLogout={handleLogout} />
               </ProtectedRoute>
             )}
           />

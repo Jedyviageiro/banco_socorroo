@@ -377,13 +377,13 @@ function StepBar({ current }) {
         const isDone = idx < current;
         const isActive = idx === current;
         return (
-          <>
-            <div key={idx} className={`pf-step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}>
+          <div key={`step-group-${idx}`} className="pf-step-group">
+            <div className={`pf-step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}>
               <div className="pf-step-num">{isDone ? '✓' : idx}</div>
               <span>{label}</span>
             </div>
-            {i < STEPS.length - 1 && <div key={`line-${i}`} className="pf-step-line" />}
-          </>
+            {i < STEPS.length - 1 && <div className="pf-step-line" />}
+          </div>
         );
       })}
     </div>
