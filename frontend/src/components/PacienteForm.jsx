@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from './useToast';
 import api from '../services/api';
 
 /* ─────────────────────────────────────────────
@@ -14,9 +15,9 @@ const CSS = `
 
   .pf-root {
     font-family: 'DM Sans', system-ui, sans-serif;
-    max-width: 520px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 2.5rem 1.25rem;
   }
 
   /* ── Step indicator ── */
@@ -86,7 +87,7 @@ const CSS = `
     background: #fff;
     border: 0.5px solid #e5e3de;
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 2rem;
   }
 
   .pf-section-label {
@@ -126,7 +127,7 @@ const CSS = `
   .pf-label {
     font-size: 13px;
     color: #6b6966;
-    min-width: 80px;
+    min-width: 110px;
     font-weight: 500;
     flex-shrink: 0;
   }
@@ -135,7 +136,7 @@ const CSS = `
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 14px;
+    font-size: 15px;
     font-family: 'DM Sans', system-ui, sans-serif;
     color: #1a1a1a;
     outline: none;
@@ -152,18 +153,41 @@ const CSS = `
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 14px;
+    font-size: 15px;
     font-family: 'DM Sans', system-ui, sans-serif;
     color: #1a1a1a;
     outline: none;
-    padding: 0;
+    padding: 10px 40px 10px 0;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%233c3489' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: background-color 0.15s;
   }
 
   .pf-select.placeholder {
-    color: #c5c3bb;
+    color: #8f8c86;
+    font-weight: 400;
+  }
+
+  .pf-select:hover {
+    background-color: transparent;
+  }
+
+  .pf-select:focus {
+    box-shadow: none;
+    outline: none;
+  }
+
+  .pf-select option {
+    color: #111110;
+    background: #ffffff;
+    border-radius: 10px;
   }
 
   .pf-check {
@@ -183,7 +207,7 @@ const CSS = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 1.25rem;
+    margin-top: 1.5rem;
   }
 
   .pf-hint {
@@ -200,8 +224,8 @@ const CSS = `
     color: #fff;
     border: none;
     border-radius: 8px;
-    padding: 9px 22px;
-    font-size: 14px;
+    padding: 11px 24px;
+    font-size: 15px;
     font-family: 'DM Sans', system-ui, sans-serif;
     font-weight: 500;
     cursor: pointer;
@@ -292,6 +316,11 @@ const CSS = `
   @media (prefers-color-scheme: dark) {
     .pf-card { background: #1e1e1c; border-color: #3a3835; }
     .pf-input, .pf-select { color: #f0ede8; }
+    .pf-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23cfc9ff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+    .pf-select.placeholder { color: #9d9a93; }
+    .pf-select option { color: #111110; background: #ffffff; }
     .pf-step.active .pf-step-num { background: #534AB7; border-color: #534AB7; }
     .pf-step-num { background: #2c2c2a; border-color: #4a4845; color: #888780; }
     .pf-field { border-color: #3a3835; }
@@ -388,6 +417,7 @@ function injectStyles() {
 ───────────────────────────────────────────── */
 function PacienteForm() {
   injectStyles();
+  const toast = useToast();
 
   const [form, setForm] = useState({ nome: '', idade: '', sexo: '', telefone: '' });
   const [uiState, setUiState] = useState('idle'); // idle | loading | success | error
@@ -400,9 +430,11 @@ function PacienteForm() {
     try {
       await api.post('/pacientes', form);
       setUiState('success');
+      toast.success('Paciente registado com sucesso.', 'Registo concluído');
     } catch (err) {
       console.error(err);
       setUiState('error');
+      toast.error('Erro ao registar paciente. Tente novamente.', 'Falha no registo');
     }
   };
 
@@ -429,7 +461,7 @@ function PacienteForm() {
               Pode consultar o perfil na lista de pacientes.
             </p>
             <button className="pf-new-btn" onClick={reset}>
-              Registar novo paciente
+              Novo registo
             </button>
           </div>
         ) : (
@@ -507,9 +539,6 @@ function PacienteForm() {
               </button>
             </div>
 
-            {uiState === 'error' && (
-              <p className="pf-error">Erro ao registar paciente. Tente novamente.</p>
-            )}
           </>
         )}
       </div>

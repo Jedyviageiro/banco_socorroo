@@ -48,9 +48,9 @@ exports.seedDefaultUser = async () => {
     return;
   }
 
-  const nome = process.env.DEFAULT_ADMIN_NOME || 'Administrador';
-  const username = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
-  const password = process.env.DEFAULT_ADMIN_PASSWORD || 'Admin@123';
+  const nome = process.env.DEFAULT_ADMIN_NOME 
+  const username = process.env.DEFAULT_ADMIN_USERNAME
+  const password = process.env.DEFAULT_ADMIN_PASSWORD
 
   await Usuario.create({
     nome,

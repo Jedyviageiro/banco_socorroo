@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../components/useToast';
 import api from '../services/api';
 import { saveAuthSession } from '../services/auth';
 
@@ -226,23 +227,6 @@ const CSS = `
   .login-forgot:hover { opacity: 0.75; }
 
   /* ── Error ── */
-  .login-error {
-    font-size: 12px;
-    color: #a32d2d;
-    background: #fcebeb;
-    border: 0.5px solid #f7c1c1;
-    border-radius: 6px;
-    padding: 8px 12px;
-    margin-bottom: 1rem;
-    animation: login-shake 0.3s ease;
-  }
-
-  @keyframes login-shake {
-    0%,100% { transform: translateX(0); }
-    25%      { transform: translateX(-4px); }
-    75%      { transform: translateX(4px); }
-  }
-
   /* ── Submit ── */
   .login-submit {
     width: 100%;
@@ -396,26 +380,26 @@ function Login({ onLogin }) {
   injectStyles();
 
   const navigate = useNavigate();
+  const toast = useToast();
   const [form, setForm] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleChange = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
     try {
       const { data } = await api.post('/auth/login', form);
       const session = { token: data.token, usuario: data.usuario };
       saveAuthSession(session);
       onLogin(session);
+      toast.success('Sessão iniciada com sucesso.', 'Login efectuado');
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      setError(err.response?.data?.erro || 'Não foi possível iniciar sessão.');
+      toast.error(err.response?.data?.erro || 'Não foi possível iniciar sessão.', 'Falha no login');
     } finally {
       setIsLoading(false);
     }
@@ -500,9 +484,6 @@ function Login({ onLogin }) {
               Esqueceu a password?
             </button>
           </div>
-
-          {/* Error */}
-          {error && <p className="login-error">{error}</p>}
 
           {/* Submit */}
           <button className="login-submit" type="submit" disabled={isLoading}>
